@@ -1,10 +1,4 @@
-// ============================================================
-//  logger.js – Structured, colour-coded request logging
-// ============================================================
-//  Provides timestamped, leveled logging with colour support.
-//  In production you'd swap this for Winston / Pino, but this
-//  keeps the project dependency-light and beginner-friendly.
-// ============================================================
+
 
 // ANSI colour codes for terminal output
 const COLORS = {
@@ -40,10 +34,10 @@ function timestamp() {
 function logRoute(ip, selectedNode, hashValue) {
   console.log(
     `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
-      `${COLORS.cyan}ROUTE${COLORS.reset}  ` +
-      `${COLORS.white}IP ${COLORS.bright}${ip}${COLORS.reset} ` +
-      `${COLORS.dim}(hash ${hashValue})${COLORS.reset} ` +
-      `→ ${COLORS.green}${COLORS.bright}${selectedNode}${COLORS.reset}`
+    `${COLORS.cyan}ROUTE${COLORS.reset}  ` +
+    `${COLORS.white}IP ${COLORS.bright}${ip}${COLORS.reset} ` +
+    `${COLORS.dim}(hash ${hashValue})${COLORS.reset} ` +
+    `→ ${COLORS.green}${COLORS.bright}${selectedNode}${COLORS.reset}`
   );
 }
 
@@ -58,7 +52,7 @@ function logHealthCheck(node, alive) {
     : `${COLORS.bgRed}${COLORS.bright} DOWN    ${COLORS.reset}`;
   console.log(
     `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
-      `${COLORS.magenta}HEALTH${COLORS.reset} ${node} ${status}`
+    `${COLORS.magenta}HEALTH${COLORS.reset} ${node} ${status}`
   );
 }
 
@@ -69,8 +63,8 @@ function logHealthCheck(node, alive) {
 function logRateLimit(ip) {
   console.log(
     `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
-      `${COLORS.bgYellow}${COLORS.bright} RATE-LIMITED ${COLORS.reset} ` +
-      `${COLORS.red}${ip}${COLORS.reset} – request denied`
+    `${COLORS.bgYellow}${COLORS.bright} RATE-LIMITED ${COLORS.reset} ` +
+    `${COLORS.red}${ip}${COLORS.reset} – request denied`
   );
 }
 
@@ -81,7 +75,7 @@ function logRateLimit(ip) {
 function logInfo(message) {
   console.log(
     `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
-      `${COLORS.blue}INFO${COLORS.reset}   ${message}`
+    `${COLORS.blue}INFO${COLORS.reset}   ${message}`
   );
 }
 
@@ -92,7 +86,7 @@ function logInfo(message) {
 function logWarn(message) {
   console.log(
     `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
-      `${COLORS.yellow}WARN${COLORS.reset}   ${message}`
+    `${COLORS.yellow}WARN${COLORS.reset}   ${message}`
   );
 }
 
@@ -103,7 +97,7 @@ function logWarn(message) {
 function logError(message) {
   console.log(
     `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
-      `${COLORS.red}ERROR${COLORS.reset}  ${message}`
+    `${COLORS.red}ERROR${COLORS.reset}  ${message}`
   );
 }
 
