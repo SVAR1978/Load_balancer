@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Load Balancer – Metrics Dashboard</title>
+  <meta name="description" content="Real-time metrics dashboard for the Consistent Hash Load Balancer" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e1a; --surface: #111827; --surface2: #1e2740;
+      --border: #2a3555; --text: #e2e8f0; --dim: #8892b0;
+      --accent: #6366f1; --accent2: #818cf8; --green: #34d399;
+      --red: #f87171; --yellow: #fbbf24; --cyan: #22d3ee;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif; background: var(--bg);
+      color: var(--text); min-height: 100vh; padding: 24px;
+      background-image: radial-gradient(ellipse at 20% 0%, rgba(99,102,241,.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 100%, rgba(34,211,238,.06) 0%, transparent 50%);
+    }
+
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 {
+      font-size: 2rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent2), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    header p { color: var(--dim); margin-top: 6px; font-size: .95rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+    .card .label { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 6px; }
+    .card .value { font-size: 2rem; font-weight: 700; }
+    .card .value.green { color: var(--green); }
+    .card .value.red { color: var(--red); }
+    .card .value.cyan { color: var(--cyan); }
+    .card .value.yellow { color: var(--yellow); }
+    .card .value.accent { color: var(--accent2); }
+
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+    }
+    .panel h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+    /* Node bars */
+    .node-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .node-name { width: 90px; font-weight: 600; font-size: .9rem; }
+    .node-bar-track { flex: 1; height: 28px; background: var(--surface2); border-radius: 8px; overflow: hidden; position: relative; }
+    .node-bar {
+      height: 100%; border-radius: 8px; transition: width .6s ease;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      display: flex; align-items: center; padding-left: 10px;
+      font-size: .78rem; font-weight: 600; color: #fff; min-width: 36px;
+    }
+    .node-status { width: 12px; height: 12px; border-radius: 50%; }
+    .node-status.up { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .node-status.down { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+    .node-weight { color: var(--dim); font-size: .8rem; width: 50px; text-align: right; }
+
+    /* Request log */
+    .log-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .log-table th { text-align: left; color: var(--dim); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: .72rem; letter-spacing: .06em; }
+    .log-table td { padding: 7px 10px; border-bottom: 1px solid rgba(42,53,85,.4); }
+    .log-table tr:hover td { background: rgba(99,102,241,.06); }
+    .badge { padding: 2px 8px; border-radius: 6px; font-size: .72rem; font-weight: 600; }
+    .badge.normal { background: rgba(52,211,153,.15); color: var(--green); }
+    .badge.fallback { background: rgba(251,191,36,.15); color: var(--yellow); }
+
+    /* Buttons */
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 10px; font-family: inherit;
+      font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #7c3aed); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,.4); }
+    .btn-success { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
+    .btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+    .btn-cyan { background: linear-gradient(135deg, #0891b2, #06b6d4); color: #fff; }
+    .btn:active { transform: scale(.97); }
+
+    .scroll-box { max-height: 320px; overflow-y: auto; }
+    .scroll-box::-webkit-scrollbar { width: 6px; }
+    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 640px) { body { padding: 12px; } .grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ Load Balancer Dashboard</h1>
+    <p>Consistent Hashing &middot; Health Checks &middot; Weighted Routing &middot; Rate Limiting</p>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="grid" id="kpi-grid">
+    <div class="card"><div class="label">Total Requests</div><div class="value accent" id="kpi-total">0</div></div>
+    <div class="card"><div class="label">Requests / sec</div><div class="value cyan" id="kpi-rps">0</div></div>
+    <div class="card"><div class="label">Rate Limited</div><div class="value red" id="kpi-limited">0</div></div>
+    <div class="card"><div class="label">Fallback Routes</div><div class="value yellow" id="kpi-fallback">0</div></div>
+    <div class="card"><div class="label">Active Nodes</div><div class="value green" id="kpi-nodes">0</div></div>
+    <div class="card"><div class="label">Uptime (s)</div><div class="value" id="kpi-uptime">0</div></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" onclick="sendRandom()">🎲 Route Random IP</button>
+    <button class="btn btn-primary" onclick="simulate(10)">⚡ Simulate 10</button>
+    <button class="btn btn-primary" onclick="simulate(50)">⚡ Simulate 50</button>
+    <button class="btn btn-cyan" onclick="simulate(200)">🔥 Simulate 200</button>
+  </div>
+
+  <!-- Node Distribution -->
+  <div class="panel">
+    <h2>📦 Node Distribution</h2>
+    <div id="node-bars"></div>
+  </div>
+
+  <!-- Node Health -->
+  <div class="panel">
+    <h2>🏥 Node Health &amp; Controls</h2>
+    <div id="node-health"></div>
+  </div>
+
+  <!-- Recent Requests -->
+  <div class="panel">
+    <h2>📋 Recent Requests</h2>
+    <div class="scroll-box">
+      <table class="log-table">
+        <thead><tr><th>Time</th><th>IP Address</th><th>Node</th><th>Hash</th><th>Status</th></tr></thead>
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    async function fetchJSON(url, opts) {
+      const r = await fetch(API + url, opts);
+      return r.json();
+    }
+
+    async function sendRandom() {
+      await fetchJSON('/api/route/random');
+      refresh();
+    }
+
+    async function simulate(n) {
+      await fetchJSON('/api/simulate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ count: n }) });
+      refresh();
+    }
+
+    async function toggleNode(name, up) {
+      await fetchJSON(`/api/nodes/${name}/${up ? 'up' : 'down'}`, { method: 'PUT' });
+      refresh();
+    }
+
+    async function refresh() {
+      try {
+        const data = await fetchJSON('/api/status');
+        const m = data.metrics;
+
+        document.getElementById('kpi-total').textContent = m.totalRequests;
+        document.getElementById('kpi-rps').textContent = m.requestsPerSecond;
+        document.getElementById('kpi-limited').textContent = m.rateLimited;
+        document.getElementById('kpi-fallback').textContent = m.fallbacks;
+        document.getElementById('kpi-uptime').textContent = m.uptime;
+
+        const healthy = data.nodes.filter(n => n.healthy).length;
+        document.getElementById('kpi-nodes').textContent = `${healthy}/${data.nodes.length}`;
+
+        // Node bars
+        const maxCount = Math.max(1, ...Object.values(m.perNode));
+        let barsHTML = '';
+        for (const node of data.nodes) {
+          const count = m.perNode[node.name] || 0;
+          const pct = (count / maxCount * 100).toFixed(1);
+          barsHTML += `<div class="node-row">
+            <span class="node-name">${node.name}</span>
+            <div class="node-bar-track"><div class="node-bar" style="width:${pct}%">${count}</div></div>
+            <span class="node-weight">w=${node.weight}</span>
+          </div>`;
+        }
+        document.getElementById('node-bars').innerHTML = barsHTML;
+
+        // Health
+        let healthHTML = '';
+        for (const node of data.nodes) {
+          const cls = node.healthy ? 'up' : 'down';
+          const btn = node.healthy
+            ? `<button class="btn btn-danger" style="padding:5px 12px;font-size:.76rem" onclick="toggleNode('${node.name}',false)">Mark Down</button>`
+            : `<button class="btn btn-success" style="padding:5px 12px;font-size:.76rem" onclick="toggleNode('${node.name}',true)">Mark Up</button>`;
+          healthHTML += `<div class="node-row">
+            <div class="node-status ${cls}"></div>
+            <span class="node-name">${node.name}</span>
+            <span style="flex:1;color:var(--dim);font-size:.85rem">${node.healthy ? 'Healthy' : 'DOWN'} &middot; weight=${node.weight}</span>
+            ${btn}
+          </div>`;
+        }
+        document.getElementById('node-health').innerHTML = healthHTML;
+
+        // Log
+        const rows = (m.recentRequests || []).slice(-30).reverse();
+        let logHTML = '';
+        for (const r of rows) {
+          const time = new Date(r.timestamp).toLocaleTimeString();
+          const badge = r.wasFallback ? '<span class="badge fallback">fallback</span>' : '<span class="badge normal">direct</span>';
+          logHTML += `<tr><td>${time}</td><td>${r.ip}</td><td>${r.node}</td><td>${r.hashValue}</td><td>${badge}</td></tr>`;
+        }
+        document.getElementById('log-body').innerHTML = logHTML;
+      } catch (e) { console.error('Refresh failed', e); }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "consistent-hash-load-balancer",
+  "version": "1.0.0",
+  "description": "A production-grade load balancer using Consistent Hashing with health checks, weighted routing, rate limiting, and a real-time metrics dashboard.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "simulate": "node src/simulate.js",
+    "test": "node src/test.js"
+  },
+  "keywords": [
+    "load-balancer",
+    "consistent-hashing",
+    "node.js",
+    "express",
+    "health-check",
+    "rate-limiting"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "chalk": "^4.1.2"
+  }
+}
